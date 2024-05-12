@@ -5,7 +5,7 @@ from VectorDatabase import ChromaDatabase
 
 class ChatGPT:
     def __init__(self):
-        self.API_KEY = 'app-cavbHdzerauR1kWw5sSexQ5v'
+        self.API_KEY = ""
         self.db = ChromaDatabase()
 
     def query(self, question: str) -> str | Exception:
