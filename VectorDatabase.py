@@ -1,38 +1,19 @@
-import chromadb
 from typing import List
-from utils import ReadFiles
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
 
-from Embedding import MokaiEmbedding
 
+class Database:
+    _instance = None
 
-class BaseVectorDatabase:
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self) -> None:
-        self.embedding = MokaiEmbedding()
+        self.embedding = HuggingFaceEmbeddings(model_name="moka-ai/m3e-small")
+        self.database = Chroma(persist_directory='resources', embedding_function=self.embedding)
 
-
-class ChromaDatabase(BaseVectorDatabase):
-    def __init__(self, name: str = 'baseDatabase') -> None:
-        super().__init__()
-        self.client = chromadb.Client()
-        self.collection = self.client.create_collection(
-            name=name,
-            metadata={"hnsw:space": "cosine"}
-        )
-
-        # 这里要改！！！！！！！！！！！！！！！！！！！！1
-        self.append(ReadFiles(path='').get_content(max_token_len=400, cover_content=100))
-
-    def append(self, text: List[str]) -> None:
-        embeddings = [self.embedding.embedding(x) for x in text]
-        self.collection.add(
-            documents=text,
-            embeddings=embeddings,
-            ids=[str(x) for x in range(len(text))],
-        )
-
-    def query(self, text: str, n: int = 1) -> List[str] | None:
-        results = self.collection.query(
-            query_embeddings=self.embedding.embedding(text),
-            n_results=n
-        )
-        return results['documents'][0]
+    def retrieve(self, text: str, k: int = 5) -> List[str]:
+        return [x.page_content for x in self.database.similarity_search(text, k=k)]
